@@ -1,0 +1,85 @@
+
+services:
+  # OpenClaw Gateway - Core agent platform
+  openclaw-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    user: root
+    privileged: true
+    network_mode: host
+    pid: host
+    volumes:
+      - ./openclaw-data:/root/.openclaw
+      - /root/workspace-cowork:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - ZAI_API_KEY=${ZAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN}
+      - HOST_WORKSPACE_ROOT=/root/workspace-cowork
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Feishu Multi-Bot Bridge
+  # Receives webhook events for all 6 role bots and routes to the appropriate handler
+  feishu-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.feishu-bridge
+    container_name: feishu-bridge
+    restart: unless-stopped
+    ports:
+      - "38582:8080"
+    volumes:
+      - /root/workspace-cowork:/workspace
+    environment:
+      # Gateway connection
+      - OPENCLAW_GATEWAY_URL=http://host.docker.internal:18789
+      - OPENCLAW_TOKEN=${OPENCLAW_TOKEN}
+
+      # CEO助理
+      - ROLE_CEO_ASSISTANT_APP_ID=${ROLE_CEO_ASSISTANT_APP_ID}
+      - ROLE_CEO_ASSISTANT_APP_SECRET=${ROLE_CEO_ASSISTANT_APP_SECRET}
+
+      # CTO
+      - ROLE_CTO_APP_ID=${ROLE_CTO_APP_ID}
+      - ROLE_CTO_APP_SECRET=${ROLE_CTO_APP_SECRET}
+
+      # 产品经理
+      - ROLE_PM_APP_ID=${ROLE_PM_APP_ID}
+      - ROLE_PM_APP_SECRET=${ROLE_PM_APP_SECRET}
+
+      # 开发工程师
+      - ROLE_DEV_APP_ID=${ROLE_DEV_APP_ID}
+      - ROLE_DEV_APP_SECRET=${ROLE_DEV_APP_SECRET}
+
+      # 测试工程师
+      - ROLE_QA_APP_ID=${ROLE_QA_APP_ID}
+      - ROLE_QA_APP_SECRET=${ROLE_QA_APP_SECRET}
+
+      # 运维工程师
+      - ROLE_OPS_APP_ID=${ROLE_OPS_APP_ID}
+      - ROLE_OPS_APP_SECRET=${ROLE_OPS_APP_SECRET}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - openclaw-network
+
+  # Helper service to ensure the sandbox image is pulled
+  sandbox-image-preloader:
+    image: python:3.11-slim
+    command: ["true"]
+    restart: "no"
+    networks:
+      - openclaw-network
+
+networks:
+  openclaw-network:
+    driver: bridge

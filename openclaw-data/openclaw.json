@@ -1,0 +1,100 @@
+{
+  // OpenClaw Configuration for Development Squad
+  // Gateway server settings
+  gateway: {
+    port: 18789,
+    mode: "local"
+  },
+
+  // Agent defaults
+  agents: {
+    defaults: {
+      workspace: "/workspace",
+      userTimezone: "Asia/Shanghai",
+      timeoutSeconds: 43200,
+      
+      // Default model - using Google Gemini
+      model: {
+        primary: "google/gemini-3-flash-preview"
+      },
+      
+      // Model allowlist
+      
+      // Model allowlist
+      models: {
+        "google/gemini-3-flash-preview": { alias: "Gemini-3-Flash" },
+        "google/gemini-2.5-pro": { alias: "Gemini-Pro" },
+        "google/gemini-2.5-flash": { alias: "Gemini-Flash" },
+        "zai/glm-4.7": { alias: "GLM-4" }
+      },
+      
+      // Security sandbox - OFF for full host access
+      // This runs agents directly on the Gateway (which is privileged)
+      sandbox: {
+        mode: "off",
+        workspaceAccess: "rw",
+        scope: "session"
+      }
+    },
+    
+    // Multi-agent list: PM, Developer, Code Reviewer, DevOps
+    list: [
+      {
+        id: "pm",
+        name: "PM Agent",
+        default: true,
+        identity: {
+          name: "PM",
+          emoji: "🎯",
+          theme: "blue"
+        },
+        // PM can spawn sub-agents
+        subagents: {
+          allowAgents: ["developer", "reviewer", "devops"]
+        }
+      },
+      {
+        id: "developer",
+        name: "Developer Agent",
+        identity: {
+          name: "Developer",
+          emoji: "💻",
+          theme: "green"
+        },
+        sandbox: {
+          workspaceAccess: "rw"
+        }
+      },
+      {
+        id: "reviewer",
+        name: "Code Reviewer Agent",
+        identity: {
+          name: "Reviewer",
+          emoji: "🔍",
+          theme: "purple"
+        },
+        sandbox: {
+          workspaceAccess: "ro"
+        }
+      },
+      {
+        id: "devops",
+        name: "DevOps Agent",
+        identity: {
+          name: "DevOps",
+          emoji: "🔧",
+          theme: "orange"
+        },
+        sandbox: {
+          workspaceAccess: "rw"
+        }
+      }
+    ]
+
+  },
+
+  // Logging
+  logging: {
+    level: "info"
+  }
+}

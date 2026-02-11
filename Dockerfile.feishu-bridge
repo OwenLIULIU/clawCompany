@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir fastapi uvicorn httpx "websockets==10.4"
+
+# Copy all application modules
+COPY main.py config.py router.py orchestrator.py /app/
+COPY feishu/ /app/feishu/
+COPY gateway/ /app/gateway/
+COPY roles/ /app/roles/
+
+EXPOSE 8080
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

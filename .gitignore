@@ -1,0 +1,41 @@
+# Environment files
+.env
+
+# OpenClaw data
+openclaw-data/*
+!openclaw-data/openclaw.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+
+# Docker
+.docker/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime workspace (mounted via Docker volume, not source code)
+workspace/
+
+# Old files (can be removed after migration)
+agent_core.py
+server.py
+Dockerfile
+feishu_bridge.py

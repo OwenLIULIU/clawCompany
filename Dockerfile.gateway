@@ -1,0 +1,24 @@
+FROM alpine/openclaw:latest
+
+USER root
+
+# No need to install Docker CLI - using host's Docker via socket
+ENV HOME=/root
+
+COPY config-init.js ./
+
+# Failed build-time patch removed - moved to runtime in config-init.js
+# Rationale: File path at build time is inconsistent/missing
+
+# Install Docker CLI so the agent can control host docker
+# Using static binary to be distro-agnostic
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then DOCKER_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then DOCKER_ARCH="aarch64"; \
+    else echo "Unsupported architecture: $ARCH" && exit 1; fi && \
+    curl -fsSL https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-27.3.1.tgz -o docker.tgz && \
+    tar xzvf docker.tgz --strip 1 -C /usr/local/bin docker/docker && \
+    rm docker.tgz
+
+ENTRYPOINT []
+CMD ["sh", "-c", "node config-init.js && node openclaw.mjs gateway --bind lan --verbose"]
