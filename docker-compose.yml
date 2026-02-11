@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.gateway
-    container_name: openclaw-gateway
+    container_name: clawco-gateway
     restart: unless-stopped
     user: root
     privileged: true
@@ -33,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.feishu-bridge
-    container_name: feishu-bridge
+    container_name: clawco-feishu-bridge
     restart: unless-stopped
     ports:
       - "38582:8080"
