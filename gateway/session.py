@@ -94,7 +94,31 @@ async def run_openclaw_session(
             }
             await websocket.send(json.dumps(payload))
 
-            # 3. Event Loop - collect response
+            # 3. Wait for chat.send response and capture runId
+            run_id = None
+            while True:
+                try:
+                    msg = await asyncio.wait_for(websocket.recv(), timeout=30.0)
+                except asyncio.TimeoutError:
+                    logger.error(f"Timeout waiting for chat.send response: {session_key}")
+                    return None
+
+                data = json.loads(msg)
+
+                # Look for the response to our chat.send request
+                if (
+                    data.get("type") == "res"
+                    and data.get("id") == req_id
+                ):
+                    if data.get("ok"):
+                        run_id = data.get("result", {}).get("runId")
+                        logger.debug(f"Session {session_key} got runId={run_id}")
+                    else:
+                        logger.error(f"chat.send failed for {session_key}: {data}")
+                        return None
+                    break
+
+            # 4. Event Loop - collect response, filtered by runId
             accumulated_response = ""
 
             while True:
@@ -112,6 +136,11 @@ async def run_openclaw_session(
                 if data.get("type") == "event":
                     event_type = data.get("event")
                     event_payload = data.get("payload", {})
+                    event_run = event_payload.get("run", "")
+
+                    # Skip events from other runs
+                    if run_id and event_run and event_run != run_id:
+                        continue
 
                     # Tool use event
                     if (
@@ -129,10 +158,11 @@ async def run_openclaw_session(
                         and event_payload.get("stream") == "assistant"
                     ):
                         data_node = event_payload.get("data", {})
-                        delta = data_node.get("delta", "") or data_node.get("text", "")
-                        if delta:
-                            accumulated_response += delta
-                            await on_text(delta)
+                        # Gateway sends full accumulated text in each event, not deltas
+                        text = data_node.get("text", "") or data_node.get("delta", "")
+                        if text:
+                            accumulated_response = text  # always keep latest full text
+                            await on_text(text)
 
                     # Turn complete
                     if (

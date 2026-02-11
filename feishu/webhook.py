@@ -85,7 +85,19 @@ async def handle_webhook(request: Request) -> dict:
         message = data["event"]["message"]
         msg_type = message.get("message_type", "text")
         chat_id = message.get("chat_id", "")
+        chat_type = message.get("chat_type", "")
         message_id = message.get("message_id", "")
+
+        # ---- Mention filtering for group chats ----
+        # In group chats, Feishu sends the event to ALL bot apps in the group.
+        # We must only process the event if THIS bot was @mentioned.
+        if chat_type == "group":
+            mentions = message.get("mentions", [])
+            if not _is_bot_mentioned(role, mentions):
+                logger.debug(
+                    f"[{role.emoji} {role.display_name}] Not mentioned in group msg, skipping"
+                )
+                return {"status": "success"}
 
         # Extract sender info
         sender_data = data["event"]["sender"]["sender_id"]
@@ -110,7 +122,7 @@ async def handle_webhook(request: Request) -> dict:
             return {"status": "success"}
 
         # Remove @bot mention prefix (Feishu adds @bot_name at the start)
-        # The text may start with @BotName followed by the actual content
+        # The text field may contain the raw mention as '@_user_1' or similar
         clean_text = _strip_mention_prefix(text)
         if not clean_text:
             return {"status": "success"}
@@ -171,3 +183,29 @@ def _strip_mention_prefix(text: str) -> str:
     # Remove @RoleName patterns (display name mentions)
     cleaned = re.sub(r"@\S+\s*", "", cleaned, count=1).strip()
     return cleaned if cleaned else text.strip()
+
+
+def _is_bot_mentioned(role, mentions: list) -> bool:
+    """
+    Check if the given role's bot was @mentioned in this message.
+
+    Feishu mentions array entries have a 'name' field matching the bot display name.
+    We match against the role's display_name.
+
+    Args:
+        role: The RoleConfig of the bot receiving the event
+        mentions: The 'mentions' array from the Feishu event message
+
+    Returns:
+        True if this bot was @mentioned, False otherwise.
+    """
+    if not mentions:
+        return False
+
+    for mention in mentions:
+        mention_name = mention.get("name", "")
+        # Match by display name (e.g. "CEO助理", "CTO", "产品经理")
+        if mention_name == role.display_name:
+            return True
+
+    return False
