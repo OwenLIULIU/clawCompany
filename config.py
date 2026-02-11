@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # ============ Shared Config ============
 
-OPENCLAW_GATEWAY_URL = os.environ.get("OPENCLAW_GATEWAY_URL", "http://host.docker.internal:18789")
+OPENCLAW_GATEWAY_URL = os.environ.get("OPENCLAW_GATEWAY_URL", "http://host.docker.internal:18788")
 OPENCLAW_TOKEN = os.environ.get("OPENCLAW_TOKEN", "")
 WORKSPACE_DIR = "/workspace"
 
