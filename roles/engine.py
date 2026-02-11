@@ -131,6 +131,7 @@ class RoleEngine:
             if rid != self.config.role_id:
                 other_roles.append(f"- @{rname}")
 
+        roles_str = "\n".join(other_roles)
         return (
             f"[ROLE IDENTITY]\n"
             f"You are {self.config.display_name} at ClawCompany.\n"
@@ -139,7 +140,7 @@ class RoleEngine:
             f"- Reply concisely and clearly, like a real person in a work chat.\n"
             f"- Do NOT be verbose. Get to the point.\n"
             f"- If the question is outside your expertise, suggest the user ask the appropriate colleague:\n"
-            f"{'\\n'.join(other_roles)}\n\n"
+            f"{roles_str}\n\n"
             f"[USER MESSAGE]\n"
             f"{user_message}"
         )
