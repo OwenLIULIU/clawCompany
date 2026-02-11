@@ -2,7 +2,6 @@
   // OpenClaw Configuration for Development Squad
   // Gateway server settings
   "gateway": {
-    "name": "ClawCompany-Gateway",
     "port": 18788,
     "mode": "local"
   },
