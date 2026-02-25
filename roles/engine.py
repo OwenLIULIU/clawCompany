@@ -5,6 +5,7 @@ direct Q&A mode and task execution mode.
 """
 
 import logging
+import hashlib
 from typing import Optional
 
 from roles.registry import RoleConfig, ROLE_REGISTRY
@@ -13,6 +14,11 @@ from gateway.session import run_openclaw_session
 from config import ROLE_DISPLAY_NAMES
 
 logger = logging.getLogger(__name__)
+
+def make_safe_session_key(prefix: str, identifier: str) -> str:
+    """Generate a filesystem-safe session key for OpenClaw gateway."""
+    digest = hashlib.sha1(identifier.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}_{digest}"
 
 
 class RoleEngine:
@@ -34,7 +40,10 @@ class RoleEngine:
         Handle a direct @mention from a user to this role.
         The role answers independently without going through the orchestrator.
         """
-        session_key = f"feishu:role:{self.config.role_id}:chat:{chat_id}"
+        session_key = make_safe_session_key(
+            prefix=f"chat_{self.config.role_id}",
+            identifier=chat_id
+        )
 
         # Build the augmented message with role identity
         augmented = self._build_direct_prompt(message)
@@ -82,7 +91,10 @@ class RoleEngine:
 
         The role also posts its response to the group chat as its own bot.
         """
-        session_key = f"feishu:role:{self.config.role_id}:task:{task_id}"
+        session_key = make_safe_session_key(
+            prefix=f"task_{self.config.role_id}",
+            identifier=task_id
+        )
 
         # Build the task prompt with role identity and constraints
         augmented = self._build_task_prompt(task_description)

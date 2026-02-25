@@ -59,8 +59,12 @@ async def run_orchestration(
     # Build the available roles description for the orchestrator
     available_roles = _build_available_roles_description()
 
+    from roles.engine import make_safe_session_key
     # Orchestrator session - persists across the full task lifecycle
-    orch_session_key = f"feishu:role:ceo_assistant:orchestrate:{task_id}"
+    orch_session_key = make_safe_session_key(
+        prefix="orch_ceo",
+        identifier=task_id
+    )
 
     # Initial orchestrator prompt
     orchestrator_system = (
