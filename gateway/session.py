@@ -54,12 +54,13 @@ async def run_openclaw_session(
                     "client": {
                         "id": "gateway-client",
                         "version": "1.0",
-                        "mode": "operator",
+                        "mode": "backend",
                         "platform": "linux",
                     },
                     "auth": {
                         "token": OPENCLAW_TOKEN
                     },
+                    "scopes": ["operator.write", "operator.read"],
                     "minProtocol": 3,
                     "maxProtocol": 3,
                 },
