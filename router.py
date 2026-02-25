@@ -52,8 +52,8 @@ def is_task_trigger(role: RoleConfig, message_text: str) -> bool:
     if role.role_id != ROLE_CEO_ASSISTANT:
         return False
 
-    # Simple status queries go to direct chat
-    status_keywords = ["进度", "状态", "进展", "汇报", "report", "status"]
+    # Simple status queries or greetings go to direct chat
+    status_keywords = ["进度", "状态", "进展", "汇报", "report", "status", "你好", "hello", "hi", "在吗", "能做什么", "功能", "介绍"]
     text_lower = message_text.lower().strip()
     for kw in status_keywords:
         if text_lower == kw or text_lower == f"查看{kw}":

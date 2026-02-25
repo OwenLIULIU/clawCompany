@@ -69,11 +69,13 @@ async def run_orchestration(
         f"[AVAILABLE TEAM MEMBERS]\n{available_roles}\n\n"
         f"[COORDINATION RULES]\n"
         f"1. Analyze the task and decide which team member should work on it next.\n"
-        f"2. You must respond with a JSON action. Two possible actions:\n"
+        f"2. You must respond with a JSON action. Three possible actions:\n"
         f"   a) DELEGATE: assign work to a team member\n"
         f"      {{\"action\": \"delegate\", \"role\": \"<role_id>\", \"instruction\": \"<specific instruction for that role>\"}}\n"
         f"   b) COMPLETE: task is done, deliver final result to CEO\n"
         f"      {{\"action\": \"complete\", \"summary\": \"<final report to CEO>\"}}\n"
+        f"   c) REPLY: direct conversation, answer a simple question, or clarify requirements with the CEO. Use this if the user is just asking a question or chatting, and no team delegation is needed yet.\n"
+        f"      {{\"action\": \"reply\", \"message\": \"<your answer to the CEO>\"}}\n"
         f"3. The 'instruction' should be clear and specific. Include references to files or prior results.\n"
         f"4. You can only delegate to ONE role at a time.\n"
         f"5. After receiving a role's output, decide the next step.\n"
@@ -112,9 +114,23 @@ async def run_orchestration(
                 f"Your previous response was not valid JSON. Please respond with exactly one JSON object:\n"
                 f"Either: {{\"action\": \"delegate\", \"role\": \"<role_id>\", \"instruction\": \"...\"}}\n"
                 f"Or: {{\"action\": \"complete\", \"summary\": \"...\"}}\n"
+                f"Or: {{\"action\": \"reply\", \"message\": \"...\"}}\n"
                 f"Your previous response was: {decision_text[:300]}"
             )
             continue
+
+        # Handle REPLY action
+        if action.get("action") == "reply":
+            msg = action.get("message", "收到。")
+            await send_message_as_role(
+                app_id=assistant.app_id,
+                app_secret=assistant.app_secret,
+                chat_id=chat_id,
+                text=f"{assistant.emoji} {msg}",
+            )
+            logger.info(f"[Orchestrator] Task {task_id} handled via direct reply")
+            # For a simple reply to a direct question, we consider the orchestration round complete.
+            return
 
         # Handle COMPLETE action
         if action.get("action") == "complete":
