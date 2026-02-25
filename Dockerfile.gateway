@@ -1,4 +1,4 @@
-FROM alpine/openclaw:latest
+FROM openclaw-gateway:proven
 
 USER root
 
