@@ -57,7 +57,10 @@ async def run_openclaw_session(
                         "mode": "backend",
                         "platform": "linux",
                     },
-                    "auth": {"token": OPENCLAW_TOKEN},
+                    "auth": {
+                        "token": OPENCLAW_TOKEN,
+                        "scopes": ["*"]
+                    },
                     "minProtocol": 3,
                     "maxProtocol": 3,
                 },
