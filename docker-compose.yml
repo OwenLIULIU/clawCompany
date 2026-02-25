@@ -12,10 +12,15 @@ services:
     network_mode: host
     pid: host
     volumes:
-      - ./openclaw-data:/root/.openclaw
+      - ./openclaw-data:/workspace/.openclaw
       - /root/workspace-cowork:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
+      - HOME=/workspace
+      - OPENCLAW_STATE_DIR=/workspace/.openclaw
+      - OPENCLAW_HOME=/workspace
+      - PI_HOME=/workspace/.pi
+      - OPENCLAW_CONFIG_PATH=/workspace/.openclaw/openclaw.json
       - ZAI_API_KEY=${ZAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_TOKEN}

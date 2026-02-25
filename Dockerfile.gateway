@@ -3,7 +3,7 @@ FROM alpine/openclaw:latest
 USER root
 
 # No need to install Docker CLI - using host's Docker via socket
-ENV HOME=/root
+ENV HOME=/workspace
 
 COPY config-init.js ./
 
