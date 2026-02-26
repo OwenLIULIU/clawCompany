@@ -123,32 +123,50 @@ async def run_openclaw_session(
 
             # 4. Event Loop - collect response, filtered by runId
             accumulated_response = ""
+            event_count = 0
 
             while True:
                 try:
                     msg = await asyncio.wait_for(websocket.recv(), timeout=timeout_seconds)
                 except asyncio.TimeoutError:
-                    logger.warning(f"Session {session_key} timed out")
+                    logger.warning(f"Session {session_key} timed out after {event_count} events")
                     break
                 except (websockets.exceptions.ConnectionClosed, asyncio.CancelledError):
-                    logger.info(f"Session {session_key} connection closed")
+                    logger.info(f"Session {session_key} connection closed after {event_count} events")
                     break
 
                 data = json.loads(msg)
+                event_count += 1
 
                 if data.get("type") == "event":
                     event_type = data.get("event")
                     event_payload = data.get("payload", {})
                     event_run = event_payload.get("run", "")
-                    
-                    # Optional debug logging for events to see what's happening
-                    if event_type == "chat":
-                        logger.debug(f"Session {session_key} got chat event: state={event_payload.get('state')}")
-                    elif event_type == "agent":
-                        logger.debug(f"Session {session_key} got agent event: stream={event_payload.get('stream')} phase={event_payload.get('phase')}")
+
+                    # Log every event at INFO level for debugging
+                    if event_type == "agent":
+                        stream = event_payload.get("stream", "")
+                        phase = event_payload.get("phase", "")
+                        aseq = event_payload.get("aseq", "")
+                        data_keys = list(event_payload.get("data", {}).keys()) if "data" in event_payload else []
+                        logger.info(
+                            f"[EVT] {session_key} agent: stream={stream} phase={phase} "
+                            f"aseq={aseq} run={event_run[:8] if event_run else ''} "
+                            f"data_keys={data_keys}"
+                        )
+                    elif event_type == "chat":
+                        state = event_payload.get("state", "")
+                        logger.info(
+                            f"[EVT] {session_key} chat: state={state} "
+                            f"run={event_run[:8] if event_run else ''} "
+                            f"has_message={'message' in event_payload}"
+                        )
+                    else:
+                        logger.info(f"[EVT] {session_key} {event_type}")
 
                     # Skip events from other runs
                     if run_id and event_run and event_run != run_id:
+                        logger.info(f"[EVT] SKIP: run mismatch (want={run_id[:8]}, got={event_run[:8]})")
                         continue
 
                     # Tool use event
@@ -169,12 +187,15 @@ async def run_openclaw_session(
                         data_node = event_payload.get("data", {})
                         delta = data_node.get("delta", "")
                         full_text = data_node.get("text", "")
-                        
+                        logger.info(
+                            f"[TEXT] {session_key} delta_len={len(delta)} "
+                            f"full_len={len(full_text)} accum_len={len(accumulated_response)}"
+                        )
+
                         if delta:
                             accumulated_response += delta
                             await on_text(delta)
                         elif full_text:
-                            # Gateway sends full text in each event, extract the new part
                             new_text = full_text[len(accumulated_response):]
                             accumulated_response = full_text
                             if new_text:
@@ -189,23 +210,28 @@ async def run_openclaw_session(
                         final_msg = event_payload.get("message", {})
                         content = final_msg.get("content")
                         if isinstance(content, str) and content:
+                            logger.info(f"[FINAL] {session_key} final content length={len(content)}")
                             if not accumulated_response:
                                 accumulated_response = content
                                 await on_text(content)
                             elif len(content) > len(accumulated_response):
-                                # Just in case the final message has trailing content not streamed
                                 new_text = content[len(accumulated_response):]
                                 accumulated_response = content
                                 await on_text(new_text)
 
-                        logger.info(f"Session {session_key} turn complete. Length: {len(accumulated_response)}")
+                        logger.info(
+                            f"Session {session_key} turn complete. "
+                            f"Length: {len(accumulated_response)} events: {event_count}"
+                        )
                         break
 
-            # If response is completely empty, it might be an error or safety filter
             if not accumulated_response:
-                logger.warning(f"Session {session_key} produced an empty response. Check Gateway logs for model/safety errors.")
+                logger.warning(
+                    f"Session {session_key} produced an empty response after {event_count} events. "
+                    f"Check Gateway logs for model/safety errors."
+                )
                 return None
-                
+
             return accumulated_response
 
     except Exception as e:
