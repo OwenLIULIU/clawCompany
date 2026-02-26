@@ -161,11 +161,18 @@ async def run_openclaw_session(
                         and event_payload.get("stream") == "assistant"
                     ):
                         data_node = event_payload.get("data", {})
-                        # Gateway sends full accumulated text in each event, not deltas
-                        text = data_node.get("text", "") or data_node.get("delta", "")
-                        if text:
-                            accumulated_response = text  # always keep latest full text
-                            await on_text(text)
+                        delta = data_node.get("delta", "")
+                        full_text = data_node.get("text", "")
+                        
+                        if delta:
+                            accumulated_response += delta
+                            await on_text(delta)
+                        elif full_text:
+                            # Gateway sends full text in each event, extract the new part
+                            new_text = full_text[len(accumulated_response):]
+                            accumulated_response = full_text
+                            if new_text:
+                                await on_text(new_text)
 
                     # Turn complete
                     if (
@@ -175,14 +182,25 @@ async def run_openclaw_session(
                         # Check for non-streamed final message
                         final_msg = event_payload.get("message", {})
                         content = final_msg.get("content")
-                        if isinstance(content, str) and content and not accumulated_response:
-                            accumulated_response = content
-                            await on_text(content)
+                        if isinstance(content, str) and content:
+                            if not accumulated_response:
+                                accumulated_response = content
+                                await on_text(content)
+                            elif len(content) > len(accumulated_response):
+                                # Just in case the final message has trailing content not streamed
+                                new_text = content[len(accumulated_response):]
+                                accumulated_response = content
+                                await on_text(new_text)
 
-                        logger.info(f"Session {session_key} turn complete")
+                        logger.info(f"Session {session_key} turn complete. Length: {len(accumulated_response)}")
                         break
 
-            return accumulated_response if accumulated_response else None
+            # If response is completely empty, it might be an error or safety filter
+            if not accumulated_response:
+                logger.warning(f"Session {session_key} produced an empty response. Check Gateway logs for model/safety errors.")
+                return None
+                
+            return accumulated_response
 
     except Exception as e:
         logger.error(f"Session {session_key} error: {e}")
