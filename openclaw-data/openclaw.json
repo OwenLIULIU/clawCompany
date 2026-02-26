@@ -53,6 +53,18 @@
         }
       },
       {
+        "id": "orchestrator",
+        "name": "Orchestrator Agent",
+        "identity": {
+          "name": "Orchestrator",
+          "emoji": "📋",
+          "theme": "gray"
+        },
+        // No tools, no subagents - pure text response only
+        "skills": { "bins": [] },
+        "sandbox": { "mode": "off" }
+      },
+      {
         "id": "developer",
         "name": "Developer Agent",
         "identity": {

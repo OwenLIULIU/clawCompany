@@ -60,10 +60,11 @@ async def run_orchestration(
     available_roles = _build_available_roles_description()
 
     from roles.engine import make_safe_session_key
-    # Orchestrator session - persists across the full task lifecycle
+    # Orchestrator session - uses dedicated 'orchestrator' agent (no tools)
     orch_session_key = make_safe_session_key(
         prefix="orch_ceo",
-        identifier=task_id
+        identifier=task_id,
+        agent_id="orchestrator"
     )
 
     # Initial orchestrator prompt

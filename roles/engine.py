@@ -15,12 +15,12 @@ from config import ROLE_DISPLAY_NAMES
 
 logger = logging.getLogger(__name__)
 
-def make_safe_session_key(prefix: str, identifier: str) -> str:
+def make_safe_session_key(prefix: str, identifier: str, agent_id: str = "pm") -> str:
     """Generate a filesystem-safe session key for OpenClaw gateway.
-    Must start with a valid agent_id from openclaw.json (e.g. 'pm_').
+    Must start with a valid agent_id from openclaw.json.
     """
     digest = hashlib.sha1(identifier.encode("utf-8")).hexdigest()[:16]
-    return f"pm_{prefix}_{digest}"
+    return f"{agent_id}_{prefix}_{digest}"
 
 
 class RoleEngine:
