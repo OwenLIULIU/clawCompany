@@ -140,6 +140,12 @@ async def run_openclaw_session(
                     event_type = data.get("event")
                     event_payload = data.get("payload", {})
                     event_run = event_payload.get("run", "")
+                    
+                    # Optional debug logging for events to see what's happening
+                    if event_type == "chat":
+                        logger.debug(f"Session {session_key} got chat event: state={event_payload.get('state')}")
+                    elif event_type == "agent":
+                        logger.debug(f"Session {session_key} got agent event: stream={event_payload.get('stream')} phase={event_payload.get('phase')}")
 
                     # Skip events from other runs
                     if run_id and event_run and event_run != run_id:
